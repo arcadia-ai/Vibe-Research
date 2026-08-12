@@ -11,6 +11,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 _TEST_DATA_DIR = tempfile.mkdtemp(prefix="vr-test-data-")
 os.environ["VR_DATA_DIR"] = _TEST_DATA_DIR
 os.environ["VR_REPORTS_DIR"] = os.path.join(_TEST_DATA_DIR, "myreports")
+# 业务单测默认沿用无鉴权本地模式；认证边界由 test_auth.py 单独覆盖。
+os.environ.pop("VR_ADMIN_PASSWORD_HASH", None)
+os.environ.pop("VR_SESSION_SECRET", None)
 
 
 def pytest_configure(config):

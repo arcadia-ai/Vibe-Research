@@ -4,7 +4,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { toast } from "sonner";
 import { loadLlm, saveLlm, clearLlm } from "@/lib/llm";
-import { loadAccessKey, saveAccessKey } from "@/lib/api";
 import { subscriptionModels, apiModels, PROVIDER_BASE, isCliProvider, aiModels, type ProviderId } from "@/lib/ai-models";
 
 export function Settings() {
@@ -20,8 +19,6 @@ export function Settings() {
   const [baseURL, setBaseURL] = useState(existing && !existingIsCli ? existing.baseURL : (PROVIDER_BASE[firstApi.provider] || ""));
   const [modelName, setModelName] = useState(existing && !existingIsCli ? existing.model : firstApi.id);
   const [apiKey, setApiKey] = useState(existing && !existingIsCli ? existing.apiKey : "");
-  // 后端访问密钥（对应部署时的 VR_API_KEY）；本机自用不设鉴权时留空
-  const [accessKey, setAccessKey] = useState(loadAccessKey());
 
   const providerOf = (id: string): ProviderId => aiModels.find((m) => m.id === id)?.provider ?? "openai-compatible";
 
@@ -59,12 +56,6 @@ export function Settings() {
     toast.success("已清除本地配置");
   };
 
-  const saveAccess = () => {
-    const k = accessKey.trim();
-    saveAccessKey(k);
-    setAccessKey(k);
-    toast.success(k ? "已保存后端访问密钥（存本地）" : "已清除后端访问密钥");
-  };
 
   return (
     <div>
@@ -183,23 +174,6 @@ export function Settings() {
         )}
       </GlassCard>
 
-      {/* 后端访问密钥：仅当后端部署时设置了 VR_API_KEY（公网防蹭用）才需要填 */}
-      <GlassCard className="mt-4">
-        <h3 className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-          <KeyRound className="h-4 w-4 text-primary" /> 后端访问密钥（可选）
-        </h3>
-        <p className="mb-3 text-xs text-muted-foreground">
-          仅当后端部署时设置了 <code className="rounded bg-muted/50 px-1">VR_API_KEY</code>（公网部署防蹭用）才需要填，填后端同一个值；
-          本机自用没设鉴权就留空。同样只存本地浏览器。
-        </p>
-        <div className="flex items-center gap-2">
-          <input type="password" value={accessKey} onChange={(e) => setAccessKey(e.target.value)} placeholder="与后端 VR_API_KEY 保持一致"
-            className="flex-1 rounded-lg border border-border bg-black/20 px-3 py-2 text-sm outline-none focus:border-primary/50" />
-          <button onClick={saveAccess} className="rounded-lg bg-primary/15 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/25">
-            保存
-          </button>
-        </div>
-      </GlassCard>
     </div>
   );
 }

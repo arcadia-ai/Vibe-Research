@@ -7,29 +7,8 @@ export class ApiError extends Error {
   }
 }
 
-// 后端访问密钥（对应后端部署时的 VR_API_KEY，公网部署防蹭用）。只存本地浏览器。
-const ACCESS_KEY = "vr-access-key";
-
-export function loadAccessKey(): string {
-  try {
-    return localStorage.getItem(ACCESS_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-export function saveAccessKey(key: string) {
-  try {
-    if (key) localStorage.setItem(ACCESS_KEY, key);
-    else localStorage.removeItem(ACCESS_KEY);
-  } catch {
-    /* 隐私模式等场景 localStorage 不可用 */
-  }
-}
-
 export function authHeaders(): Record<string, string> {
-  const k = loadAccessKey();
-  return k ? { Authorization: `Bearer ${k}` } : {};
+  return {};
 }
 
 export interface MyReport {
@@ -73,7 +52,7 @@ async function request<T>(path: string, method: "GET" | "POST" | "DELETE" = "GET
   }
   if (!resp.ok) {
     if (resp.status === 401) {
-      throw new ApiError("后端开启了访问鉴权（VR_API_KEY）：请在「接入 AI」页底部填写后端访问密钥", 401);
+      throw new ApiError("管理员会话已失效，请重新登录", 401);
     }
     throw new ApiError(payload?.detail || `HTTP ${resp.status}`, resp.status);
   }

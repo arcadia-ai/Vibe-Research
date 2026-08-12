@@ -8,6 +8,7 @@ import { hasLlm, chatStream, type ChatMsg } from "@/lib/llm";
 import { ApiError } from "@/lib/api";
 import { SaveNoteButton } from "@/components/ui/SaveNoteButton";
 import { storageGet, storageSet, storageRemove } from "@/lib/storage";
+import { useAuth } from "@/lib/auth";
 
 // 对话持久化（#19）。此前 msgs 只是组件内的 useState：切页面卸载、刷新、
 // 关标签页，问过的东西全没了——用户反馈「关闭 AI 就找不回之前的对话」，
@@ -105,6 +106,7 @@ interface ToolUse { name: string; arg: string }
 // 「问 AI」入口 —— 把当前分栏内容作为上下文，调用户自己配置的模型；
 // AI 可自行调 A股数据工具作答。结论由用户模型给出，本产品不校准、不负责。
 export function AskAiButton({ context, suggestions = [], label = "问 AI", scopeKey }: Props) {
+  const { authenticated } = useAuth();
   const { pathname } = useLocation();
   const chatKey = CHAT_KEY_PREFIX + pathname + (scopeKey ? `#${scopeKey}` : "");
 
@@ -246,6 +248,8 @@ export function AskAiButton({ context, suggestions = [], label = "问 AI", scope
       }
     }
   };
+
+  if (!authenticated) return null;
 
   return (
     <>

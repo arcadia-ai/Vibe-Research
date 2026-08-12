@@ -12,6 +12,7 @@ import { hasLlm, chatStream } from "@/lib/llm";
 import { SaveNoteButton } from "@/components/ui/SaveNoteButton";
 import { loadWatch, saveWatch, addCodes } from "@/lib/watchlist";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 // A股红涨绿跌。全球市场（美股/港股指数）**也沿用红涨**——与整个看板及东财等中国平台一致，
 // 对中国用户最不易看错（Simon 2026-07-05 确认；非国际绿涨惯例，是有意选择，勿改）。
@@ -20,6 +21,7 @@ const fmt = (v: number) => v.toLocaleString("zh-CN", { maximumFractionDigits: 2 
 const yi = (v: number | null) => (v == null ? "—" : `${fmt(v / 1e8)} 亿`); // 元 → 亿
 
 export function DailyReview() {
+  const { authenticated } = useAuth();
   const [indices, setIndices] = useState<IndexQuote[]>([]);
   const [idxErr, setIdxErr] = useState(false);
   const [review, setReview] = useState("");
@@ -225,7 +227,7 @@ export function DailyReview() {
       </GlassCard>
 
       {/* 3. AI 当日复盘 */}
-      <GlassCard glow className="mb-6">
+      {authenticated && <GlassCard glow className="mb-6">
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-1.5 font-semibold"><Sparkles className="h-4 w-4 text-primary" /> AI 当日复盘</h3>
           <button onClick={runReview} disabled={reviewLoading}
@@ -253,7 +255,7 @@ export function DailyReview() {
         ) : !needConfig && !reviewErr && !reviewLoading ? (
           <p className="mt-3 text-sm text-muted-foreground">点上方按钮，系统把当天客观数据打包给你的 AI，由它生成复盘。<b className="text-foreground">分析是它给的，我们只负责喂数据。</b></p>
         ) : null}
-      </GlassCard>
+      </GlassCard>}
 
       {/* 4. 市场情绪 */}
       <div className="mb-3 flex items-center gap-2">

@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import os
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -27,6 +27,7 @@ import portfolio as pf
 import market
 import myreports as mr
 import reflection as reflect_layer
+import auth
 
 
 from version import read_version
@@ -48,21 +49,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 可选鉴权：设了 VR_API_KEY 就要求所有 /api/* 带 `Authorization: Bearer <key>`
-#   （本地自托管不设=开放；公网部署务必设，否则别人能读你的持仓/调你的后端）。
-_API_KEY = os.environ.get("VR_API_KEY", "").strip()
-
-
 @app.middleware("http")
-async def _require_api_key(request: Request, call_next):
-    if (
-        _API_KEY
-        and request.method != "OPTIONS"
-        and request.url.path.startswith("/api/")
-        and request.url.path != "/api/health"
-    ):
-        if request.headers.get("authorization", "") != f"Bearer {_API_KEY}":
-            return JSONResponse({"detail": "未授权：缺少或错误的 API Key（VR_API_KEY）"}, status_code=401)
+async def _require_admin(request: Request, call_next):
+    path = request.url.path
+    private_prefixes = ("/api/portfolio", "/api/myreports", "/api/chat", "/api/debate", "/api/reflect")
+    private = path.startswith(private_prefixes) or (
+        path.startswith("/api/") and request.method not in {"GET", "HEAD", "OPTIONS"}
+    )
+    if auth.AUTH_ENABLED and request.method not in {"GET", "HEAD", "OPTIONS"}:
+        origin = request.headers.get("origin")
+        if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+            return JSONResponse({"detail": "拒绝跨站写入请求"}, status_code=403)
+    if auth.AUTH_ENABLED and private and path not in {"/api/auth/login", "/api/auth/logout"}:
+        if not auth.verify_session(request.cookies.get(auth.COOKIE_NAME)):
+            return JSONResponse({"detail": "请先以管理员身份登录"}, status_code=401)
     return await call_next(request)
 
 _CODE_RE = r"^\d{6}$"
@@ -78,6 +78,32 @@ def _validate(code: str) -> str:
 @app.get("/api/health")
 def health():
     return {"ok": True, "service": "vibe-research-api", "version": __version__}
+
+
+class LoginReq(BaseModel):
+    password: str
+
+
+@app.get("/api/auth/status")
+def auth_status(request: Request):
+    return {"authenticated": auth.verify_session(request.cookies.get(auth.COOKIE_NAME)), "enabled": auth.AUTH_ENABLED}
+
+
+@app.post("/api/auth/login")
+def auth_login(req: LoginReq, response: Response):
+    if not auth.AUTH_ENABLED:
+        raise HTTPException(503, "管理员登录尚未配置")
+    if not auth.verify_password(req.password):
+        raise HTTPException(401, "管理员密码错误")
+    response.set_cookie(auth.COOKIE_NAME, auth.create_session(), max_age=auth.SESSION_TTL,
+                        httponly=True, secure=True, samesite="lax", path="/")
+    return {"authenticated": True}
+
+
+@app.post("/api/auth/logout")
+def auth_logout(response: Response):
+    response.delete_cookie(auth.COOKIE_NAME, path="/", secure=True, httponly=True, samesite="lax")
+    return {"authenticated": False}
 
 
 class LLMConfig(BaseModel):

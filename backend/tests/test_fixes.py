@@ -15,17 +15,6 @@ import portfolio as pf
 client = TestClient(app_module.app)
 
 
-# ── VR_API_KEY 鉴权中间件 ───────────────────────────────────────────
-
-def test_api_key_auth(monkeypatch):
-    monkeypatch.setattr(app_module, "_API_KEY", "sekret")
-    assert client.get("/api/health").status_code == 200  # health 豁免
-    assert client.get("/api/quote?codes=abc").status_code == 401  # 缺头
-    assert client.get("/api/quote?codes=abc", headers={"Authorization": "Bearer wrong"}).status_code == 401
-    # 正确 key → 通过鉴权、走到参数校验层（400 而非 401，不联网）
-    assert client.get("/api/quote?codes=abc", headers={"Authorization": "Bearer sekret"}).status_code == 400
-
-
 # ── 持仓：本地 JSON CRUD（不联网，行情打桩） ────────────────────────
 
 @pytest.fixture()

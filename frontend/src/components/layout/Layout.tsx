@@ -3,11 +3,12 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   Activity, Radar, LayoutGrid, Wallet, Settings, Search, NotebookPen,
   Moon, Sun, ChevronsLeft, ChevronsRight, LineChart, Github, UserRound,
-  Cog, Cpu, Database, Cable, Rocket, FlaskConical, Star, FileText, Swords,
+  Cog, Cpu, Database, Cable, Rocket, FlaskConical, Star, FileText, Swords, LogIn, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { storageGet, storageSet } from "@/lib/storage";
+import { useAuth } from "@/lib/auth";
 
 // 具名导入：只把 version 打进产物，不会把整个 package.json 塞进 bundle
 import { version as PKG_VERSION } from "../../../package.json";
@@ -32,6 +33,8 @@ const NAV = [
   { to: "/settings", icon: Settings, label: "接入 AI" },
 ];
 
+const PRIVATE_PATHS = new Set(["/debate", "/portfolio", "/my-reports", "/notes", "/settings"]);
+
 // 常看的板块，作为「板块中心」下的快捷入口（缩进显示）。
 const SECTOR_LINKS = [
   { to: "/sectors/humanoid", icon: Cog, label: "人形机器人" },
@@ -45,6 +48,7 @@ const SECTOR_LINKS = [
 export function Layout() {
   const { pathname } = useLocation();
   const { dark, toggle } = useDarkMode();
+  const { authenticated, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(() => storageGet("vr-sidebar") === "collapsed");
 
   useEffect(() => {
@@ -73,7 +77,7 @@ export function Layout() {
 
         {/* Nav */}
         <nav className={cn("flex-1 space-y-1 overflow-auto", collapsed ? "p-1.5" : "p-2.5")}>
-          {NAV.map(({ to, icon: Icon, label }) => {
+          {NAV.filter(({ to }) => authenticated || !PRIVATE_PATHS.has(to)).map(({ to, icon: Icon, label }) => {
             const active = pathname === to;
             return (
               <div key={to}>
@@ -124,6 +128,11 @@ export function Layout() {
 
         {/* Footer */}
         <div className={cn("border-t border-border/50", collapsed ? "flex flex-col items-center gap-2 p-2" : "space-y-2 p-3")}>
+          <Link to={authenticated ? "/daily-review" : "/login"} onClick={authenticated ? () => void logout() : undefined}
+            className={cn("flex items-center text-xs text-muted-foreground hover:text-foreground", collapsed ? "justify-center p-1.5" : "gap-1.5")}>
+            {authenticated ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+            {!collapsed && (authenticated ? "退出管理" : "管理员登录")}
+          </Link>
           {collapsed ? (
             <>
               <button onClick={toggle} className="rounded p-1.5 text-muted-foreground transition-colors hover:text-foreground" title={dark ? "亮色" : "暗色"}>

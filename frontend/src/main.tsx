@@ -4,12 +4,15 @@ import { RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { router } from "./router";
+import { AuthProvider } from "./lib/auth";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
       <Toaster position="bottom-right" theme="dark" richColors closeButton duration={3500} />
     </ErrorBoundary>
   </StrictMode>

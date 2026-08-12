@@ -11,6 +11,7 @@ import { api, ApiError, type RadarData, type Industry, type Announcement, type N
 import { loadWatch } from "@/lib/watchlist";
 import { hasLlm, chatStream } from "@/lib/llm";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 const TABS = [
   { key: "events", label: "事件概率", icon: TrendingUp, integrated: false, desc: "全球宏观预期概率（公开数据、免登录只读），后续接入" },
@@ -22,6 +23,7 @@ const TABS = [
 interface Digest { loading?: boolean; text?: string; err?: string; needKey?: boolean }
 
 function InvestmentNewsPanel() {
+  const { authenticated } = useAuth();
   const [data, setData] = useState<RadarData | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [active, setActive] = useState("ai");
@@ -82,7 +84,7 @@ function InvestmentNewsPanel() {
           {hasData ? `${data!.stats.total_sources} 个公开源 · 近 ${data!.recent_days} 天 · 更新于 ${data!.generated_at}` : "12 赛道 · 108 个公开源"}
         </span>
         <div className="flex items-center gap-2">
-          {hasData && (
+          {authenticated && hasData && (
             <button onClick={genAll} disabled={bulk.running || refreshing}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 text-sm font-medium text-primary shadow-glow hover:bg-primary/25 disabled:opacity-50">
               {bulk.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -128,7 +130,7 @@ function InvestmentNewsPanel() {
           {cur && (
             <>
               {/* 今日要点总结框（暖橙框） */}
-              <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              {authenticated && <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-sm font-semibold text-primary">
                     <Lightbulb className="h-4 w-4" /> 今日要点 · {cur.name}
@@ -154,7 +156,7 @@ function InvestmentNewsPanel() {
                     <Sparkles className="h-4 w-4" /> 让 AI 提炼今日要点
                   </button>
                 )}
-              </div>
+              </div>}
 
               {/* 资讯列表 */}
               <div className="space-y-2">
