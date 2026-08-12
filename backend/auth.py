@@ -20,7 +20,8 @@ AUTH_ENABLED = bool(PASSWORD_HASH and SESSION_SECRET)
 def hash_password(password: str, iterations: int = 310_000) -> str:
     salt = secrets.token_bytes(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, iterations)
-    return "pbkdf2_sha256${}${}${}".format(
+    # ':' avoids Docker Compose treating password-hash segments as $VAR interpolation.
+    return "pbkdf2_sha256:{}:{}:{}".format(
         iterations,
         base64.urlsafe_b64encode(salt).decode().rstrip("="),
         base64.urlsafe_b64encode(digest).decode().rstrip("="),
@@ -29,7 +30,7 @@ def hash_password(password: str, iterations: int = 310_000) -> str:
 
 def verify_password(password: str) -> bool:
     try:
-        algorithm, raw_iterations, raw_salt, raw_digest = PASSWORD_HASH.split("$", 3)
+        algorithm, raw_iterations, raw_salt, raw_digest = PASSWORD_HASH.split(":", 3)
         if algorithm != "pbkdf2_sha256":
             return False
         salt = base64.urlsafe_b64decode(raw_salt + "=" * (-len(raw_salt) % 4))

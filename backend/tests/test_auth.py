@@ -42,6 +42,8 @@ def test_cross_site_write_is_rejected(monkeypatch):
 
 
 def test_password_hash_roundtrip(monkeypatch):
-    monkeypatch.setattr(auth, "PASSWORD_HASH", auth.hash_password("secret"))
+    encoded = auth.hash_password("secret")
+    assert "$" not in encoded
+    monkeypatch.setattr(auth, "PASSWORD_HASH", encoded)
     assert auth.verify_password("secret") is True
     assert auth.verify_password("not-secret") is False
